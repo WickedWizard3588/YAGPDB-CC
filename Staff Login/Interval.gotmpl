@@ -1,0 +1,67 @@
+{{/*
+
+    Credits:- Crenshaw#1312
+    This is a separate CC, which checks if your staff is offline during duty. WORKS WITH PAGST ONLY.
+        Trigger:- Minute Interval
+        5 Minutes
+
+    Made by WickedWizard
+    MIT License
+    https://github.com/WickedWizard3588/YAGPDB-CC
+
+*/}}
+
+{{/*Config Variables Start*/}}
+{{$logchannel := 797746307372285962}}{{/*Channel ID of the channel where the logs when a user is offline should be sent*/}}
+{{$format := 0}}{{/*Set this to 1 if you want the time to be formatted in 12h*/}}
+{{$utcoffset := 330}}{{/*Enter your UTC Coffset here in minutes. For example, India is UTC +5:30 and has 330.*/}}
+{{$color := 0}}{{/*Set this to 1 if you want a random color. If it's 0, it sends the triggering Staff Members, highest role color.*/}}
+{{/*Config Variables End*/}}
+
+{{/*DO NOT TOUCH*/}}
+{{$col := 16777215}}
+{{$p := 0}}
+{{$r := .Member.Roles}}
+{{if eq $color 0}}
+    {{range .Guild.Roles}}
+        {{if and (in $r .ID) (.Color) (lt $p .Position)}}
+            {{$p = .Position}}
+            {{$col = .Color}}
+        {{end}}
+    {{end}}
+{{else}}
+	{{$col = randInt 1111111 9999999}}
+{{end}}
+{{$list := ""}}
+{{$whois := ""}}
+{{$status := ""}}
+{{$id := 0}}
+{{$time := "15:04"}}
+{{if eq $format 1}}
+	{{$time = "3:04 PM"}}
+{{end}}
+{{range dbTopEntries "Login" 100 0}}
+    {{- $list = print $list .User.ID "\n" -}}
+{{end}}
+{{$no := len (split $list "\n")}}
+{{$no = sub $no 1}}
+{{range seq 0 $no}}
+	{{$no = sub $no 1}}
+    {{$id = (toInt (index (split $list "\n") $no))}}
+	{{$whois = exec "whois" $id}}
+	{{$status = $whois.Title}}
+    {{if in $status "(Offline/Invisible)"}}
+        {{$offline := dbSet $id "Offline" true}}
+    {{end}}
+    {{if dbGet $id "Offline"}}
+        {{if not (in $status "(Offline/Invisible)")}}
+            {{$embed := cembed "title" "Offline Staff"
+                "description" (print "<@" $id "> was offline from " (((dbGet $id "Offline").CreatedAt.Add (toDuration (mult $utcoffset .TimeMinute))).Format "Jan 2, 2006 15:04") " till approximately now.")
+                "footer" (sdict "text" "This is an approx value, time may vary from 0-6 minutes.")
+                "timestamp" currentTime
+                "color" $col}}
+            {{sendMessage $logchannel $embed}}
+            {{dbDel $id "Offline"}}
+        {{end}}
+    {{end}}
+{{end}}

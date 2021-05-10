@@ -1,0 +1,38 @@
+{{/*
+
+    Usage: Just Type
+    Trigger `.*` 
+    Make sure to set it to run only in the Voting Channel
+    Make Sure that the Election Channel is locked when no elections are going on.
+    Also, reset all your election Databases before the new election. 
+    The Databases to Reset are:-
+    `Vote_Cooldown` and `Vote` (Case-Sensitive)
+    After the Election is over, lock the channel, and type `-election result`
+
+    Made by WickedWizard
+    MIT License
+    https://github.com/WickedWizard3588/yagpdb-cc
+
+*/}}
+
+
+{{if dbGet .User.ID "Vote_Cooldown"}}
+    You have already voted this poll, wait for the next one {{.User.Mention}}.
+    {{deleteResponse}}
+{{else}}
+    {{if .Message.Mentions}}
+        {{$user := (index .Message.Mentions 0).ID}}
+        {{if eq $user .User.ID}}
+            Don't try to trick me, you can't vote for yourself {{.User.Mention}}
+            {{deleteResponse}}
+        {{else}}
+            You have successfully voted for that user {{.User.String}}
+            {{deleteResponse}}
+            {{$t := dbIncr $user "Vote" 1}}
+            {{$t1 := dbSet .User.ID "Vote_Cooldown" "Vote_Cooldown"}}
+        {{end}}
+    {{else}}
+        Please mention someone to vote for {{.User.Mention}}. Thanks
+        {{deleteResponse}}
+    {{end}}
+{{end}}

@@ -1,0 +1,39 @@
+{{/*
+
+    Recommened Trigger:- `(?i)\A(?:\-|<@!?204255221017214977>)\s*(?:add|remove|list)s(?:ticky)?r(?:oles?)?(?:\s+|\z)`
+    Trigger Type :- `Regex`
+
+    Credits: DZ and Sponge (Regex)
+
+    Made by WickedWizard
+    MIT License
+    https://github.com/WickedWizard3588/YAGPDB-CC
+
+*/}}
+
+{{$prefix := index (reFindAllSubmatches `.*?: \x60(.*)\x60\z` (exec "Prefix")) 0 1}}
+{{$cmd := reReplace (print `\A` $prefix) .Cmd ""}}
+{{if eq $cmd "addstickyroles" "addsr"}}
+    {{$args := parseArgs 2 "" (carg "userid" "") (carg "int" "RoleID")}}
+    {{$user := userArg ($args.Get 0)}}
+    {{dbSet $user.ID "Sticky_Roles" (toString ($args.Get 1))}}
+    Added Sticky Roles for {{$user.Mention}}, with the RoleID being {{$args.Get 1}}. 
+    **Please Remember that you can have only One Sticky Role per user. Thanks :)**
+{{else if eq $cmd "removestickyroles" "removesr"}}
+    {{$args := parseArgs 1 "" (carg "userid" "ID/Mention")}}
+    {{$user := userArg ($args.Get 0)}}
+    {{dbDel $user.ID "Sticky_Roles"}}
+    Removed Sticky Roles from {{$user.Mention}} 
+{{else if eq $cmd "liststickyroles" "listsr"}}
+    {{$rank := 0}}
+    {{$list := ""}}
+    {{$skip := 0}}
+    {{if reFind `\d+` .Message.Content}}
+        {{$skip = (reFind `\d+` .Message.Content)}}
+    {{end}}
+    {{range dbTopEntries "Sticky_Roles" 10 $skip}}
+		{{$rank = add $rank 1}}
+        {{- $list = print $list $rank " - " .User.String " - <@&" .Value ">\n" -}}
+    {{end}}
+    {{sendMessage nil (cembed "title" "Sticky Roles List" "description" $list "color" (randInt 1111111 9999999) "timestamp" currentTime)}}
+{{end}}

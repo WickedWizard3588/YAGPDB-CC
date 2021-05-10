@@ -1,0 +1,30 @@
+{{/*
+
+	Trigger: 5 minutes
+	Trigger Type: Interval
+	
+	Made by WickedWizard#3588
+	MIT License
+	https://github.com/WickedWizard3588/yagpdb-cc
+
+*/}}
+
+{{/*Config Vars Start*/}}
+{{$dbname := "Credits"}}{{/*Database Name*/}}
+{{$entries := 100}}{{/*Number of entries to be shown at once. Max 100*/}}
+{{$channel := 798432007524581406}}{{/*Channel ID of channel where message is to be edited*/}}
+{{$message := 801467225525321769}}{{/*ID of the message sent by YAG in the channel set above*/}}
+{{/*Config Vars End*/}}
+
+{{$users := dbTopEntries $dbname $entries 0}}
+{{if not (len $users)}}
+    {{editMessage $channel $message "There were no users on that page."}}
+{{else}}
+    {{$list := ""}}
+    {{$rank := 0}}
+    {{range $users}}
+        {{- $rank = add $rank 1 -}}
+        {{- $list = print $list .User.ID " - " .Value "\n" -}}
+    {{end}}
+    {{editMessage $channel $message $list}}
+{{end}}

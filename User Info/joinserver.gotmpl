@@ -1,0 +1,64 @@
+{{/*
+
+	Trigger: Join Message
+	
+	Made by WickedWizard#3588
+	MIT License
+	https://github.com/WickedWizard3588/YAGPDB-CC
+
+*/}}
+
+{{/*Configuration Values Start*/}}
+{{$logchannel := 794850582002401341}}{{/*ID of the channel, where the details about user should go*/}}
+{{$timeformat := 0}}{{/*Set to 0 if you want it in 24h format, like 14:02, else set it to 1*/}}
+{{$color := 0}}{{/*Set to 0 if you want a random color for the embed, set to 1 for highest role of the person*/}}
+{{$defaultcolor := 16777215}}{{/*DECIMALS ONLY. SET THIS IF YOU HAVE SET THE ABOVE VALUE TO 1*/}}
+{{$inline := true}}{{/*Set this to true if you want inline, else, set this to false*/}}
+{{/*Configuration Values End*/}}
+
+{{/*DO NOT TOUCH*/}}
+{{$agecreated := ""}}{{$joined := ""}}
+{{if eq $timeformat 0}}
+    {{$agecreated = formatTime currentUserCreated "15:04"}}{{$joined = (toString (.Member.JoinedAt.Parse.Format "Jan 02, 2006 15:04"))}}
+{{else}}
+    {{$agecreated = formatTime currentUserCreated "3:04 PM"}}{{$joined = (toString (.Member.JoinedAt.Parse.Format "Jan 02, 2006 3:04 AM"))}}
+{{end}}
+
+{{$bot := ""}}
+{{if .User.Bot}}
+    {{$bot = "True"}}
+{{else}}
+    {{$bot = "False"}}
+{{end}}
+
+    {{$A := ""}}
+    {{$C := exec "whois"}}
+    {{$b := index ($C).Fields 6}}
+    {{if in $b.Value ":"}}
+        {{$A = (index (split $b.Value ":") 1)}} 
+    {{else}}
+        {{$A = $b.Value}}
+    {{end}}
+
+{{$col := ""}}
+{{if eq $color 1}}
+{{$col = $defaultcolor}}{{$p := 0}}{{$r := .Member.Roles}}{{range .Guild.Roles}}{{if and (in $r .ID) (.Color) (lt $p .Position)}}{{$p = .Position}}{{$col = .Color}}{{end}}{{end}}
+{{else}}
+{{$col = randInt 1111111 9999999}}
+{{end}}
+
+{{$info := cembed 
+    "title" (joinStr "" "Info of " .User.String ) 
+    "description" "Here are some details regarding that user"
+    "fields" (cslice
+        (sdict "name" "❯ Time Created" "value" (toString $agecreated) "inline" $inline)
+        (sdict "name" "❯ Time in Minutes" "value" (toString currentUserAgeMinutes) "inline" $inline)
+        (sdict "name" "❯ Current Age" "value" (toString currentUserAgeHuman) "inline" $inline)
+        (sdict "name" "❯ Bot?" "value" $bot "inline" $inline)
+        (sdict "name" "❯ Current Custom Status" "value" $A "inline" $inline)
+        (sdict "name" "❯ Joined At" "value" $joined "inline" $inline))
+    "thumbnail" (sdict "url" (.User.AvatarURL "1024"))
+    "color" $col
+    "timestamp" currentTime
+}}
+{{sendMessage $logchannel $info}}

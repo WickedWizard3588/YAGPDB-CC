@@ -1,0 +1,135 @@
+{{/*
+
+    Credits:- Crenshaw#1312(Idea), DZ(Regex)
+    This is a separate CC, which manages your Login, Logout, Add Staff, Remove Staff, Password Reset and Staff Help
+        Trigger:- Regex
+        `(?i)\A(?:\-\s?|<@!?204255221017214977>\s*)(?:(?:add|remove):?staff|log:?(in|out)|s(?:taff)?help|r(?:eset)?p(?:assword)?)(?:\s+|\z)`
+        Make sure to update the prefix from `-` to your server prefix in the front, else the command will not trigger and work.
+	
+	If you are using PAGST for this, make sure to update the ID in the Front to 624608566426468373, as it is set for YAG.	
+
+    Made by WickedWizard
+    MIT License
+    https://github.com/WickedWizard3588/YAGPDB-CC
+
+*/}}
+
+{{/*Configuration Variables Start*/}}
+{{$joinmessage := "You have been Granted access after the Break. Thank you for getting back to your duties responsibly."}}{{/*Message that is sent when a staff member joins back after break*/}}
+{{$leavemessage := "You have been granted a break. Enjoy!!"}}{{/*Message sent when staff takes a break*/}}
+{{$staff := "Apply for staff here"}}{{/*Rules and how to apply for staff. `\n` for next line. Only in double quotes and no embeds*/}}
+{{$logchannel := 797746307372285962}}{{/*ID of the Log Channel where the length of working time is sent.*/}}
+{{$utcoffset := 330}}{{/*Enter your UTC Coffset here in minutes. For example, India is UTC +5:30 and has 330.*/}}
+{{$color := 0}}{{/*Set this to 1 if you want a random color. If it's 0, it sends the triggering Staff Members, highest role color.*/}}
+{{$checking := 1}}{{/*Set this to 0, to check for perms, for add/remove staff. If its set to 1, it checks for roleid*/}}
+{{$access := `Administrator`}}{{/*Permission needed to add/remove staff. Set this only if you set the above value to 0*/}}
+{{$roleid := 794851478149660673}}{{/*Set this only if you set the above value to 1*/}}
+{{/*Configuration Variables End*/}}
+
+{{/*DO NOT TOUCH*/}}
+{{$col := 16777215}}
+{{$p := 0}}
+{{$r := .Member.Roles}}
+{{if eq $color 0}}
+    {{range .Guild.Roles}}
+        {{if and (in $r .ID) (.Color) (lt $p .Position)}}
+            {{$p = .Position}}
+            {{$col = .Color}}
+        {{end}}
+    {{end}}
+{{else}}
+	{{$col = randInt 1111111 9999999}}
+{{end}}
+{{$perms := exec "viewperms"}}
+{{$verify := reFind (print `(?i)` $access) $perms}}
+{{$noaccess := cembed "title" "Missing permissions" "description" (print "<:cross:705738821110595607> You are missing the permission `" $access "` to use this command!") "color" 0xDD2E44}}
+{{$message := print $access " is needed for using this Command."}}
+{{if eq $checking 1}}
+    {{$verify = hasRoleID $roleid}}
+    {{$noaccess = cembed "title" "Missing Role" "description" (print "<:cross:705738821110595607> You are missing the Role <@&" $roleid "> to use this command!") "color" 0xDD2E44}}
+    {{$message = print "<@&" $roleid "> is needed for using this Command."}}
+{{end}}
+{{ $prefix := index (reFindAllSubmatches `.*?: \x60(.*)\x60\z` (exec "Prefix")) 0 1 }}
+{{- $cmd := reReplace (print `\A` $prefix) .Cmd "" -}}
+{{if eq $cmd "addstaff"}}
+    {{if $verify}}
+        {{$args := parseArgs 3 (print "Adds a Staff to be able to Login, Logout, and remove specified roles for each staff. Syntax: `" $prefix "add UserID/Mention Password RoleID`") (carg "userid" "User ID/Mention") (carg "string" "Password") (carg "int" "RoleID")}}
+        {{$user := userArg ($args.Get 0)}}
+        {{dbSet $user.ID "Password" ($args.Get 1)}}
+        {{dbSet $user.ID "Role" (toString ($args.Get 2))}}
+        <@{{$args.Get 0}}> has been added to the staff list. His role to be removed is <@&{{$args.Get 2}}>.
+    {{else}}
+        {{sendMessage nil $noaccess}}
+    {{end}}
+{{else if eq $cmd "removestaff"}}
+    {{if $verify}}
+        {{$args := parseArgs 1 (print "The correct syntax is `" $prefix "removestaff ID/Mention") (carg "userid" "ID/Mention")}}
+        {{$user := userArg ($args.Get 0)}}
+        {{dbDel $user.ID "Password"}}
+        {{dbDel $user.ID "Role"}}
+        {{if dbGet $user.ID "Login"}}{{dbDel $user.ID "Login"}}{{end}}
+        {{if dbGet $user.ID "Offline"}}{{dbDel $user.ID "Offline"}}{{end}}
+        {{if dbGet $user.ID "Logout"}}{{dbDel $user.ID "Logout"}}{{end}}
+        {{$user.Mention}} has been removed from the staff list. All his related Staff Databases are also deleted.
+    {{else}}
+        {{sendMessage nil $noaccess}}
+    {{end}}
+{{else if eq $cmd "login"}}
+    {{$password := dbGet .User.ID "Password"}}
+    {{if dbGet .User.ID "Login"}}
+        {{.User.Mention}}, you have already logged in. Please logout. Thank you
+    {{else}}
+        {{if $password}}
+            {{if .StrippedMsg}}
+                {{if eq .StrippedMsg $password.Value}}
+                    {{$joinmessage}}
+                    {{$staffrole := (dbGet .User.ID "Role").Value}}
+                    {{addRoleID $staffrole}}
+                    {{$add := dbSet .User.ID "Login" "true"}}
+                    {{$logout := dbDel .User.ID "Logout"}}
+                {{else}}
+                    You have entered the wrong password.
+                {{end}}
+            {{else}}
+                You haven't entered a password, so I cannot log you in. Thx
+            {{end}}
+        {{else}}
+            You do not exist in my list. Sorry. {{$staff}}
+        {{end}}
+    {{end}}
+{{else if eq $cmd "logout"}}
+    {{$password := dbGet .User.ID "Password"}}
+    {{if dbGet .User.ID "Logout"}}
+        You have already logged out, Thx
+    {{else}}
+        {{if dbGet .User.ID "Login"}}
+            {{if $password}}
+                {{if .StrippedMsg}}
+                    {{if eq .StrippedMsg $password.Value}}
+                        {{$leavemessage}}
+                        {{$staffrole := (dbGet .User.ID "Role").Value}}
+                        {{removeRoleID $staffrole}}
+                        {{sendMessage $logchannel (cembed "title" (joinStr "" "Duty Timings of " .User.String) "description" (print .User.String " worked from " (formatTime currentTime "Jan 2, 2006 15:04") " till " (((dbGet .User.ID "Login").CreatedAt.Add (toDuration (mult $utcoffset .TimeMinute))).Format "Jan 2, 2006 15:04")) "footer" (sdict "text" "To see if the Staff was cheating and went offline, see your LogChannel.") "color" $col)}}
+                        {{$remove := dbDel .User.ID "Login"}}
+                        {{if dbGet .User.ID "Offline"}}{{$a := dbDel .User.ID "Offline"}}{{end}}
+                        {{$logout := dbSet .User.ID "Logout" true}}
+                    {{else}}
+                        You have entered the wrong password, or you are not staff, or you do not exist in my list. Sorry
+                    {{end}}
+                {{else}}
+                    You haven't entered a password. So, I cannot log you out. Thx
+                {{end}}
+            {{else}}
+                You do not exist in my list. Sorry. {{$staff}}
+            {{end}}
+        {{else}}
+            You have already Logged out.
+        {{end}}
+    {{end}}
+{{else if eq $cmd "staffhelp" "shelp"}}
+    {{$embed := cembed "title" "Staff Help" "description" (print "**Commands:-** \n__Login:-__ Logs in to show your Staff Mark. \n**Syntax: `" $prefix "Login`**. \n__Password:-__ Asks the Password to verify if it's you. Asked when you Login and Logout. \n**Syntax: `" $prefix "password YOUR_PASSWORD`** \n__Logout:-__ Logs you out whenever you want. Asks for the Password. \n**Syntax: `" $prefix "logout`** \n__AddStaff:-__ Adds a Staff to the Staff Databases. " $message " \n**Syntax: `" $prefix "addstaff ID/Mention Password RoleID`** \n__RemoveStaff:-__ Removes a staff from the Staff Databases. " $message " \n**Syntax: `" $prefix "removestaff ID/Mention`**") "color" $col}}
+    {{sendMessage nil $embed}}
+{{else if eq $cmd "rp" "resetpassword"}}
+    {{$embed := cembed "title" "Lost or Forgot Password?" "description" (print "If you have lost or forgotten your password, do not worry. There is a simple way to reset it or change it for ease. \nThere is no need to remove yourself from the Staff List and add back. \nThe steps are as given below:- \n**__1.__ First of all, hit your dashboard [here](https://yagpdb.xyz/manage/" .Guild.ID "/customcommands) This link will take you to your Custom Commands Page. \n__2.__ Click on `Create New Custom Command` and create one. \n__3.__ Copy the User ID of the user who lost or forgot his password. \n__4.__ In the new Custom Command Response Box, put `{{(dbGet USER_ID \"Password\").Value}}`. Save the Custom Command \n__4.__ Run the Custom Command, with whatever trigger you have given. It will output the users password. \n__5.__ If you are clueless, watch the GIF below.**") "color" $col "image" (sdict "url" "https://i.imgur.com/nExNXWP.gif") "footer" (sdict "text" "Yes, there are some typos in the GIF, I do not plan to correct them, as I am too lazy to do so. Also, the GIF is big and takes time to load.")}}
+    {{sendMessage nil $embed}}
+{{end}}

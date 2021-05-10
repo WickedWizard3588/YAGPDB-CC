@@ -1,0 +1,15 @@
+{{/*
+
+    Put this in your Join Message and in a New CC with 
+    Trigger Type: Regex
+    Trigger     : `.*`
+
+    Made by WickedWizard3588
+    MIT License
+    https://github.com/WickedWizard3588/YAGPDB-CC
+
+*/}}
+
+{{if dbGet .User.ID "Sticky_Roles"}}
+    {{addRoleID (toInt (dbGet .User.ID "Sticky_Roles").Value)}}
+{{end}}
