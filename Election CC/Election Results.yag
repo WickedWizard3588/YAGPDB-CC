@@ -1,0 +1,28 @@
+{{/*
+
+    Usage: `-result/winner`
+    Recommend Trigger:- Regex with Trigger 
+    `\A-(result|winner)(\s+|\z)`
+    Replace the `-` in the Regex with your YAG Trigger
+
+    Made by WickedWizard
+    Modified by Dav!dﾉᵈᶻ#0004
+    MIT License
+    https://github.com/WickedWizard3588/YAGPDB-CC
+
+*/}}
+
+{{deleteTrigger 0}}
+{{$winner :=  dbTopEntries "Vote" 1 0}}
+{{$list := ""}}
+{{range $winner}}
+    {{$list = cembed "title" (print $list "The Winner is..." ) "description" (print "**" .User.Username "**\n\n**Total Votes: ** " .Value) "color" (randInt 1111111 9999999)}}
+{{end}}
+{{$s := sendMessageRetID nil (cembed "description" "The Winner will be announced in **10** seconds" "color" 565246)}}
+{{$c := 10}}
+{{range seq 1 10}}
+    {{- $c = sub $c 1}}
+    {{- editMessage nil $s (cembed "description" (printf "The winner will be announced in **%d** seconds" $c) "color" 565246)}}
+    {{- sleep 1}}
+{{- end}}
+{{editMessage nil $s (cembed $list)}}

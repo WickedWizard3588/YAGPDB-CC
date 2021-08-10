@@ -30,6 +30,6 @@ PAGSTDB is shown above.
 
 # NOTE:-
 
-This CC might show you a Custom Command Response longer than 2k error. If that's the case, read [#4](https://github.com/WickedWizard3588/YAGPDB-CC/issues/4) and if that does not work, please open a new issue.
+This CC might show you a Custom Command Response longer than 2k error. If that's the case please open an issue.
 
 This issue occurs in a few specific guilds only*
